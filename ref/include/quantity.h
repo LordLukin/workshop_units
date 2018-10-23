@@ -23,24 +23,60 @@
 #pragma once
 
 #include <limits>
+#include <type_traits>
+
+// Requires
+
+template<bool B>
+using Requires = std::enable_if_t<B, bool>;
 
 namespace units {
 
+  // is_quantity
+
+  template<typename Rep>
+  class quantity;
+
+  template<typename T>
+  struct is_quantity : std::false_type {
+  };
+
+  template<typename Rep>
+  struct is_quantity<quantity<Rep>> : std::true_type {
+  };
+
+  // quantity
+
+  template<typename Rep>
   class quantity {
-    int value_;
+    Rep value_;
 
   public:
+    using rep = Rep;
+    static_assert(!is_quantity<Rep>::value, "rep cannot be a quantity");
+
     quantity() = default;
-    constexpr quantity(const quantity&) = default;
-    constexpr explicit quantity(int r) : value_{r} {}
+    quantity(const quantity&) = default;
+
+    template<class Rep2, Requires<std::is_convertible_v<Rep2, rep> &&
+                                  (std::is_floating_point_v<rep> || !std::is_floating_point_v<Rep2>)> = true>
+    constexpr explicit quantity(const Rep2& r) : value_{static_cast<rep>(r)}
+    {
+    }
+
+    template<class Rep2, Requires<std::is_convertible_v<Rep2, rep> &&
+                                  (std::is_floating_point_v<rep> || !std::is_floating_point_v<Rep2>)> = true>
+    constexpr quantity(const quantity<Rep2>& q) : value_{static_cast<rep>(q.count())}
+    {
+    }
 
     quantity& operator=(const quantity& other) = default;
 
-    constexpr int count() const noexcept { return value_; }
+    constexpr rep count() const noexcept { return value_; }
 
-    static constexpr quantity zero() { return quantity(0); }
-    static constexpr quantity min() { return quantity(std::numeric_limits<int>::lowest()); }
-    static constexpr quantity max() { return quantity(std::numeric_limits<int>::max()); }
+    static constexpr quantity zero() { return quantity(Rep(0)); }
+    static constexpr quantity min() { return quantity(std::numeric_limits<Rep>::lowest()); }
+    static constexpr quantity max() { return quantity(std::numeric_limits<Rep>::max()); }
 
     constexpr quantity operator+() const { return quantity(*this); }
     constexpr quantity operator-() const { return quantity(-count()); }
@@ -59,57 +95,131 @@ namespace units {
     }
     constexpr quantity operator--(int) { return quantity(value_--); }
 
-    constexpr quantity& operator+=(quantity q)
+    constexpr quantity& operator+=(const quantity& q)
     {
       value_ += q.count();
       return *this;
     }
 
-    constexpr quantity& operator-=(quantity q)
+    constexpr quantity& operator-=(const quantity& q)
     {
       value_ -= q.count();
       return *this;
     }
 
-    constexpr quantity& operator*=(int rhs)
+    constexpr quantity& operator*=(const rep& rhs)
     {
       value_ *= rhs;
       return *this;
     }
 
-    constexpr quantity& operator/=(int rhs)
+    constexpr quantity& operator/=(const rep& rhs)
     {
       value_ /= rhs;
       return *this;
     }
 
-    constexpr quantity& operator%=(int rhs)
+    constexpr quantity& operator%=(const rep& rhs)
     {
       value_ %= rhs;
       return *this;
     }
 
-    constexpr quantity& operator%=(quantity q)
+    constexpr quantity& operator%=(const quantity& q)
     {
       value_ %= q.count();
       return *this;
     }
   };
 
-  constexpr quantity operator+(quantity lhs, quantity rhs) { return quantity(lhs.count() + rhs.count()); }
-  constexpr quantity operator-(quantity lhs, quantity rhs) { return quantity(lhs.count() - rhs.count()); }
-  constexpr quantity operator*(quantity q, int v) { return quantity(q.count() * v); }
-  constexpr quantity operator*(int v, quantity q) { return q * v; }
-  constexpr quantity operator/(quantity q, int v) { return quantity(q.count() / v); }
-  constexpr int operator/(quantity lhs, quantity rhs) { return lhs.count() / rhs.count(); }
-  constexpr quantity operator%(quantity q, int v) { return quantity(q.count() % v); }
-  constexpr quantity operator%(quantity lhs, quantity rhs) { return quantity(lhs.count() % rhs.count()); }
+  template<typename Rep1, typename Rep2>
+  constexpr quantity<std::common_type_t<Rep1, Rep2>> operator+(const quantity<Rep1>& lhs, const quantity<Rep2>& rhs)
+  {
+    using ret = quantity<std::common_type_t<Rep1, Rep2>>;
+    return ret(lhs.count() + rhs.count());
+  }
 
-  constexpr bool operator==(quantity lhs, quantity rhs) { return lhs.count() == rhs.count(); }
-  constexpr bool operator!=(quantity lhs, quantity rhs) { return !(lhs == rhs); }
-  constexpr bool operator<(quantity lhs, quantity rhs) { return lhs.count() < rhs.count(); }
-  constexpr bool operator<=(quantity lhs, quantity rhs) { return !(rhs < lhs); }
-  constexpr bool operator>(quantity lhs, quantity rhs) { return rhs < lhs; }
-  constexpr bool operator>=(quantity lhs, quantity rhs) { return !(lhs < rhs); }
+  template<typename Rep1, typename Rep2>
+  constexpr quantity<std::common_type_t<Rep1, Rep2>> operator-(const quantity<Rep1>& lhs, const quantity<Rep2>& rhs)
+  {
+    using ret = quantity<std::common_type_t<Rep1, Rep2>>;
+    return ret(lhs.count() - rhs.count());
+  }
+
+  template<typename Rep1, typename Rep2>
+  constexpr quantity<std::common_type_t<Rep1, Rep2>> operator*(const quantity<Rep1>& q, const Rep2& v)
+  {
+    using ret = quantity<std::common_type_t<Rep1, Rep2>>;
+    return ret(q.count() * v);
+  }
+
+  template<typename Rep1, typename Rep2>
+  constexpr quantity<std::common_type_t<Rep1, Rep2>> operator*(const Rep1& v, const quantity<Rep2>& q)
+  {
+    return q * v;
+  }
+
+  template<typename Rep1, typename Rep2>
+  constexpr quantity<std::common_type_t<Rep1, Rep2>> operator/(const quantity<Rep1>& q, const Rep2& v)
+  {
+    using ret = quantity<std::common_type_t<Rep1, Rep2>>;
+    return ret(q.count() / v);
+  }
+
+  template<typename Rep1, typename Rep2>
+  constexpr std::common_type_t<Rep1, Rep2> operator/(const quantity<Rep1>& lhs, const quantity<Rep2>& rhs)
+  {
+    return lhs.count() / rhs.count();
+  }
+
+  template<typename Rep1, typename Rep2>
+  constexpr quantity<std::common_type_t<Rep1, Rep2>> operator%(const quantity<Rep1>& q, const Rep2& v)
+  {
+    using ret = quantity<std::common_type_t<Rep1, Rep2>>;
+    return ret(q.count() % v);
+  }
+
+  template<typename Rep1, typename Rep2>
+  constexpr quantity<std::common_type_t<Rep1, Rep2>> operator%(const quantity<Rep1>& lhs, const quantity<Rep2>& rhs)
+  {
+    using ret = quantity<std::common_type_t<Rep1, Rep2>>;
+    return ret(lhs.count() % rhs.count());
+  }
+
+  template<typename Rep1, typename Rep2>
+  constexpr bool operator==(const quantity<Rep1>& lhs, const quantity<Rep2>& rhs)
+  {
+    return lhs.count() == rhs.count();
+  }
+
+  template<typename Rep1, typename Rep2>
+  constexpr bool operator!=(const quantity<Rep1>& lhs, const quantity<Rep2>& rhs)
+  {
+    return !(lhs == rhs);
+  }
+
+  template<typename Rep1, typename Rep2>
+  constexpr bool operator<(const quantity<Rep1>& lhs, const quantity<Rep2>& rhs)
+  {
+    return lhs.count() < rhs.count();
+  }
+
+  template<typename Rep1, typename Rep2>
+  constexpr bool operator<=(const quantity<Rep1>& lhs, const quantity<Rep2>& rhs)
+  {
+    return !(rhs < lhs);
+  }
+
+  template<typename Rep1, typename Rep2>
+  constexpr bool operator>(const quantity<Rep1>& lhs, const quantity<Rep2>& rhs)
+  {
+    return rhs < lhs;
+  }
+
+  template<typename Rep1, typename Rep2>
+  constexpr bool operator>=(const quantity<Rep1>& lhs, const quantity<Rep2>& rhs)
+  {
+    return !(lhs < rhs);
+  }
 
 }  // namespace units

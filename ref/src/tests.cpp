@@ -25,6 +25,40 @@
 
 namespace {
 
+  template<typename T>
+  class my_value {
+    T value_{};
+
+  public:
+    my_value() = default;
+    constexpr my_value(T v) : value_{v} {}
+    constexpr my_value& operator+=(const my_value& other) { value_ += other.value_; return *this; }
+    constexpr my_value& operator-=(const my_value& other) { value_ -= other.value_; return *this; }
+    constexpr my_value& operator*=(const my_value& other) { value_ *= other.value_; return *this; }
+    constexpr my_value& operator/=(const my_value& other) { value_ /= other.value_; return *this; }
+    constexpr operator const T&() const { return value_; }
+    constexpr operator T&() { return value_; }
+  };
+
+}
+
+namespace units {
+
+  template<typename T>
+  struct treat_as_floating_point<my_value<T>> : std::is_floating_point<T> {
+  };
+
+  template<typename T>
+  struct quantity_values<my_value<T>> {
+    static constexpr my_value<T> zero() { return my_value<T>(0); }
+    static constexpr my_value<T> max() { return std::numeric_limits<T>::max(); }
+    static constexpr my_value<T> min() { return std::numeric_limits<T>::lowest(); }
+  };
+
+}
+
+namespace {
+
   using namespace units;
 
   template<typename Rep>
@@ -47,15 +81,29 @@ namespace {
   static_assert(meters<int>(kilometer).count() == kilometer.count());
 
   static_assert(meters<int>(1).count() == 1);
+  static_assert(meters<int>(my_value<int>(1)).count() == 1);
+  static_assert(meters<my_value<int>>(1).count() == 1);
 //  static_assert(meters<int>(1.0).count() == 1);   // should not compile
+//  static_assert(meters<int>(my_value<float>(1.0)).count() == 1); // should not compile
+//  static_assert(meters<my_value<int>>(1.0).count() == 1);   // should not compile
   static_assert(meters<float>(1.0).count() == 1.0);
+  static_assert(meters<float>(my_value<float>(1.0)).count() == 1.0);
   static_assert(meters<float>(1).count() == 1.0);
+  static_assert(meters<float>(my_value<int>(1)).count() == 1.0);
   static_assert(meters<float>(3.14f).count() == 3.14f);
+  static_assert(meters<my_value<float>>(1.0).count() == 1.0);
+  static_assert(meters<my_value<float>>(1).count() == 1.0);
+  static_assert(meters<my_value<float>>(3.14f).count() == 3.14f);
 
   static_assert(meters<int>(kilometer).count() == 1000);
 //  static_assert(meters<int>(meters<float>(1000.0)).count() == 1000);   // should not compile
+//  static_assert(meters<int>(meters<my_value<float>>(1000.0)).count() == 1000);   // should not compile
+//  static_assert(meters<my_value<int>>(meters<float>(1000.0)).count() == 1000);   // should not compile
   static_assert(meters<float>(meters<float>(1000.0)).count() == 1000.0);
+  static_assert(meters<float>(meters<my_value<float>>(1000.0)).count() == 1000.0);
+  static_assert(meters<my_value<float>>(meters<float>(1000.0)).count() == 1000.0);
   static_assert(meters<float>(kilometer).count() == 1000.0);
+  static_assert(meters<my_value<float>>(kilometer).count() == 1000.0);
 
   // assignment operator
 
@@ -69,6 +117,12 @@ namespace {
   static_assert(meters<float>::zero().count() == 0.0);
   static_assert(meters<float>::min().count() == std::numeric_limits<float>::lowest());
   static_assert(meters<float>::max().count() == std::numeric_limits<float>::max());
+  static_assert(meters<my_value<int>>::zero().count() == 0);
+  static_assert(meters<my_value<int>>::min().count() == std::numeric_limits<int>::lowest());
+  static_assert(meters<my_value<int>>::max().count() == std::numeric_limits<int>::max());
+  static_assert(meters<my_value<float>>::zero().count() == 0.0);
+  static_assert(meters<my_value<float>>::min().count() == std::numeric_limits<float>::lowest());
+  static_assert(meters<my_value<float>>::max().count() == std::numeric_limits<float>::max());
 
   // unary member operators
 

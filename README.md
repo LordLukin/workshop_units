@@ -41,37 +41,50 @@ static_assert(2_km / 2_kmph == 1_h);
 ## Task
  
 ```cpp
+template<typename T>
+class my_value;
+
+namespace units {
+
+  template<typename T>
+  struct treat_as_floating_point<my_value<T>> : std::is_floating_point<T> {};
+
+  template<typename T>
+  struct quantity_values<my_value<T>> {
+    static constexpr my_value<T> zero() { return my_value<T>(0); }
+    static constexpr my_value<T> max() { return std::numeric_limits<T>::max(); }
+    static constexpr my_value<T> min() { return std::numeric_limits<T>::lowest(); }
+  };
+
+}
+
 template<typename Rep>
 using meters = quantity<Rep>;
 
-constexpr meters d1(1), d2(2);
-constexpr meters d3 = d1 + d2;
+constexpr meters<my_value<int>> d1(1), d2(2);
+constexpr meters<int> d3 = d1 + d2;
 static_assert(d3.count() == 3);
 
 constexpr meters<float> d4(3.0);
-constexpr meters<float> d5 = d4 + d1;
-static_assert(d5.count() == 4.0);
+constexpr meters<my_value<float>> d5 = d4 + d3;
+static_assert(d5.count() == 6.0);
 ```
 
-1. Convert `quantity` to the following class template
-    ```cpp
-    template<typename Rep>
-    class quantity;
-    ```
-2. Update the `quantity` class to
-    - provide `rep` member type in its interface
-    - use `Rep` instead of `int` in its interface and implementation.
-3. Make sure that `quantity` type is not used as class template `Rep` argument.
-4. Add converting constructor
-    ```cpp
-    template<class Rep2>
-    constexpr quantity(const quantity<Rep2>& q);
-    ```
-5. Both converting constructors should only participate in the overload resolution if:
-    - destination `Rep` is convertible from source `Rep`
-    - either destination `Rep` is of floating point type or source `Rep` is not of floating
-      point type.
-6. The result of binary operations using 2 different `Rep` types should return a new type
-   that contains a `Rep` type that is common to the `Rep` of both operands.
-7. Please note that `Rep` type can be a large class in some use cases so the `quantity` and
-   `rep` function arguments should be passed by a reference rather than a value.
+1. Add the following customization points to `quantity`
+    - `units::treat_as_floating_point<T>` that allows the user to specify that his own type provided as
+      `Rep` behaves like a floating point type
+        ```cpp
+        template<class Rep>
+        struct treat_as_floating_point;
+        ```
+    
+    - `units::quantity_values<T>` that allows providing custom `zero`, `min`, and `max` for `Rep`
+    
+        ```cpp
+        template<typename Rep>
+        struct quantity_values {
+          static constexpr Rep zero();
+          static constexpr Rep max();
+          static constexpr Rep min();
+        };
+        ```
