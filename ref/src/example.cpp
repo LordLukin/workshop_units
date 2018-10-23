@@ -25,10 +25,16 @@
 namespace {
 
   using namespace units;
-  using meters = quantity;
 
-  constexpr meters d1(1), d2(2);
-  constexpr meters d3 = d1 + d2;
+  template<typename Rep>
+  using meters = quantity<Rep>;
+
+  constexpr meters<int> d1(1), d2(2);
+  constexpr meters<int> d3 = d1 + d2;
   static_assert(d3.count() == 3);
+
+  constexpr meters<float> d4(3.0);
+  constexpr meters<float> d5 = d4 + d1;
+  static_assert(d5.count() == 4.0);
 
 }

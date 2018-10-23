@@ -30,48 +30,86 @@ namespace units {
     int value_;
 
   public:
-    constexpr quantity();
-    constexpr quantity(const quantity& q);
-    constexpr explicit quantity(int r);
+    quantity() = default;
+    constexpr quantity(const quantity&) = default;
+    constexpr explicit quantity(int r) : value_{r} {}
 
-    constexpr quantity& operator=(const quantity& other);
+    quantity& operator=(const quantity& other) = default;
 
-    constexpr int count() const noexcept;
+    constexpr int count() const noexcept { return value_; }
 
-    static constexpr quantity zero();
-    static constexpr quantity min();
-    static constexpr quantity max();
+    static constexpr quantity zero() { return quantity(0); }
+    static constexpr quantity min() { return quantity(std::numeric_limits<int>::lowest()); }
+    static constexpr quantity max() { return quantity(std::numeric_limits<int>::max()); }
 
-    constexpr quantity operator+() const;
-    constexpr quantity operator-() const;
+    constexpr quantity operator+() const { return quantity(*this); }
+    constexpr quantity operator-() const { return quantity(-count()); }
 
-    constexpr quantity& operator++();
-    constexpr quantity operator++(int);
-    constexpr quantity& operator--();
-    constexpr quantity operator--(int);
+    constexpr quantity& operator++()
+    {
+      ++value_;
+      return *this;
+    }
+    constexpr quantity operator++(int) { return quantity(value_++); }
 
-    constexpr quantity& operator+=(quantity q);
-    constexpr quantity& operator-=(quantity q);
-    constexpr quantity& operator*=(int rhs);
-    constexpr quantity& operator/=(int rhs);
-    constexpr quantity& operator%=(int rhs);
-    constexpr quantity& operator%=(quantity q);
+    constexpr quantity& operator--()
+    {
+      --value_;
+      return *this;
+    }
+    constexpr quantity operator--(int) { return quantity(value_--); }
+
+    constexpr quantity& operator+=(quantity q)
+    {
+      value_ += q.count();
+      return *this;
+    }
+
+    constexpr quantity& operator-=(quantity q)
+    {
+      value_ -= q.count();
+      return *this;
+    }
+
+    constexpr quantity& operator*=(int rhs)
+    {
+      value_ *= rhs;
+      return *this;
+    }
+
+    constexpr quantity& operator/=(int rhs)
+    {
+      value_ /= rhs;
+      return *this;
+    }
+
+    constexpr quantity& operator%=(int rhs)
+    {
+      value_ %= rhs;
+      return *this;
+    }
+
+    constexpr quantity& operator%=(quantity q)
+    {
+      value_ %= q.count();
+      return *this;
+    }
   };
 
-  constexpr quantity operator+(quantity lhs, quantity rhs);
-  constexpr quantity operator-(quantity lhs, quantity rhs);
-  constexpr quantity operator*(quantity q, int v);
-  constexpr quantity operator*(int v, quantity q);
-  constexpr quantity operator/(quantity q, int v);
-  constexpr int operator/(quantity lhs, quantity rhs);
-  constexpr quantity operator%(quantity q, int v);
-  constexpr quantity operator%(quantity lhs, quantity rhs);
+  constexpr quantity operator+(quantity lhs, quantity rhs) { return quantity(lhs.count() + rhs.count()); }
+  constexpr quantity operator-(quantity lhs, quantity rhs) { return quantity(lhs.count() - rhs.count()); }
+  constexpr quantity operator*(quantity q, int v) { return quantity(q.count() * v); }
+  constexpr quantity operator*(int v, quantity q) { return q * v; }
+  constexpr quantity operator/(quantity q, int v) { return quantity(q.count() / v); }
+  constexpr int operator/(quantity lhs, quantity rhs) { return lhs.count() / rhs.count(); }
+  constexpr quantity operator%(quantity q, int v) { return quantity(q.count() % v); }
+  constexpr quantity operator%(quantity lhs, quantity rhs) { return quantity(lhs.count() % rhs.count()); }
 
-  constexpr bool operator==(quantity lhs, quantity rhs);
-  constexpr bool operator!=(quantity lhs, quantity rhs);
-  constexpr bool operator<(quantity lhs, quantity rhs);
-  constexpr bool operator<=(quantity lhs, quantity rhs);
-  constexpr bool operator>(quantity lhs, quantity rhs);
-  constexpr bool operator>=(quantity lhs, quantity rhs);
+  constexpr bool operator==(quantity lhs, quantity rhs) { return lhs.count() == rhs.count(); }
+  constexpr bool operator!=(quantity lhs, quantity rhs) { return !(lhs == rhs); }
+  constexpr bool operator<(quantity lhs, quantity rhs) { return lhs.count() < rhs.count(); }
+  constexpr bool operator<=(quantity lhs, quantity rhs) { return !(rhs < lhs); }
+  constexpr bool operator>(quantity lhs, quantity rhs) { return rhs < lhs; }
+  constexpr bool operator>=(quantity lhs, quantity rhs) { return !(lhs < rhs); }
 
 }  // namespace units

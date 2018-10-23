@@ -39,14 +39,39 @@ static_assert(2_km / 2_kmph == 1_h);
 
 
 ## Task
-
+ 
 ```cpp
-using meters = quantity;
+template<typename Rep>
+using meters = quantity<Rep>;
 
 constexpr meters d1(1), d2(2);
 constexpr meters d3 = d1 + d2;
 static_assert(d3.count() == 3);
+
+constexpr meters<float> d4(3.0);
+constexpr meters<float> d5 = d4 + d1;
+static_assert(d5.count() == 4.0);
 ```
 
-1. Review `quantity` class declaration and provide implementation for all its functions.
-2. Make all the unit tests and example code pass.
+1. Convert `quantity` to the following class template
+    ```cpp
+    template<typename Rep>
+    class quantity;
+    ```
+2. Update the `quantity` class to
+    - provide `rep` member type in its interface
+    - use `Rep` instead of `int` in its interface and implementation.
+3. Make sure that `quantity` type is not used as class template `Rep` argument.
+4. Add converting constructor
+    ```cpp
+    template<class Rep2>
+    constexpr quantity(const quantity<Rep2>& q);
+    ```
+5. Both converting constructors should only participate in the overload resolution if:
+    - destination `Rep` is convertible from source `Rep`
+    - either destination `Rep` is of floating point type or source `Rep` is not of floating
+      point type.
+6. The result of binary operations using 2 different `Rep` types should return a new type
+   that contains a `Rep` type that is common to the `Rep` of both operands.
+7. Please note that `Rep` type can be a large class in some use cases so the `quantity` and
+   `rep` function arguments should be passed by a reference rather than a value.
