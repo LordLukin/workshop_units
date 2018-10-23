@@ -47,6 +47,6 @@ elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 # add library
-add_library(units ref/src/example.cpp ref/src/tests.cpp src/tests.cpp include/quantity.h)
+add_library(units ref/src/example.cpp ref/src/tests.cpp src/tests.cpp include/quantity.h include/common_ratio.h)
 target_include_directories(units PUBLIC include)
 target_compile_features(units PUBLIC cxx_std_17)

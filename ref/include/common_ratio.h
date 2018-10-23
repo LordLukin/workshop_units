@@ -20,16 +20,43 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "quantity.h"
+#pragma once
 
-namespace {
+#include <ratio>
+#include <type_traits>
 
-  using namespace units;
+// static_sign
 
-  template<typename Rep> using meters = quantity<Rep>;
-  template<typename Rep> using kilometers = quantity<Rep, std::kilo>;
+template<std::intmax_t Pn>
+struct static_sign;
 
-  static_assert(quantity_cast<meters<int>>(kilometers<int>(2)).count() == 2000);
-  static_assert(quantity_cast<kilometers<int>>(meters<int>(2000)).count() == 2);
+// static_abs
 
-}  // namespace
+template<std::intmax_t Pn>
+struct static_abs;
+
+// static_gcd
+
+template<std::intmax_t Pn, std::intmax_t Qn>
+struct static_gcd : static_gcd<Qn, (Pn % Qn)> {
+};
+
+template<std::intmax_t Pn>
+struct static_gcd<Pn, 0> : std::integral_constant<std::intmax_t, static_abs<Pn>::value> {
+};
+
+template<std::intmax_t Qn>
+struct static_gcd<0, Qn> : std::integral_constant<std::intmax_t, static_abs<Qn>::value> {
+};
+
+// common_ratio
+
+template<typename Ratio1, typename Ratio2>
+struct common_ratio {
+  using gcd_num = static_gcd<Ratio1::num, Ratio2::num>;
+  using gcd_den = static_gcd<Ratio1::den, Ratio2::den>;
+  using type = std::ratio<gcd_num::value, (Ratio1::den / gcd_den::value) * Ratio2::den>;
+};
+
+template<typename Ratio1, typename Ratio2>
+using common_ratio_t = typename common_ratio<Ratio1, Ratio2>::type;

@@ -101,7 +101,8 @@ namespace {
   static_assert(meters<my_value<float>>(3.14f).count() == 3.14f);
 
   static_assert(meters<int>(kilometer).count() == 1000);
-//  static_assert(meters<int>(meters<float>(1000.0)).count() == 1000);   // should not compile
+//  static_assert(meters<int>(meters<float>(3.14)).count() == 3);   // should not compile
+  static_assert(meters<int>(quantity_cast<meters<int>>(meters<float>(3.14))).count() == 3);
 //  static_assert(meters<int>(meters<my_value<float>>(1000.0)).count() == 1000);   // should not compile
 //  static_assert(meters<my_value<int>>(meters<float>(1000.0)).count() == 1000);   // should not compile
   static_assert(meters<float>(meters<float>(1000.0)).count() == 1000.0);
@@ -195,5 +196,36 @@ namespace {
   static_assert(meters<float>(1.0) < meters<int>(2));
   static_assert(meters<float>(2.0) >= meters<int>(1));
   static_assert(meters<int>(1) <= meters<float>(2.0));
+
+  // static_sign
+
+  static_assert(static_sign<2>::value == 1);
+  static_assert(static_sign<-3>::value == -1);
+  static_assert(static_sign<0>::value == 1);
+
+  // static_abs
+
+  static_assert(static_abs<2>::value == 2);
+  static_assert(static_abs<-3>::value == 3);
+  static_assert(static_abs<0>::value == 0);
+
+  // common_ratio
+
+  static_assert(std::is_same_v<common_ratio_t<std::ratio<1>, std::kilo>, std::ratio<1>>);
+  static_assert(std::is_same_v<common_ratio_t<std::kilo, std::ratio<1>>, std::ratio<1>>);
+  static_assert(std::is_same_v<common_ratio_t<std::ratio<1>, std::milli>, std::milli>);
+  static_assert(std::is_same_v<common_ratio_t<std::milli, std::ratio<1>>, std::milli>);
+
+  // common_type
+
+  static_assert(std::is_same_v<std::common_type_t<meters<int>, kilometers<int>>, meters<int>>);
+  static_assert(std::is_same_v<std::common_type_t<kilometers<long long>, meters<int>>, meters<long long>>);
+  static_assert(std::is_same_v<std::common_type_t<kilometers<long long>, millimeters<float>>, millimeters<float>>);
+
+  // quantity_cast
+
+  // static_assert(quantity_cast<int>(kilometers<int>(2)).count() == 2000);  // should not compile
+  static_assert(quantity_cast<meters<int>>(kilometers<int>(2)).count() == 2000);
+  static_assert(quantity_cast<kilometers<int>>(meters<int>(2000)).count() == 2);
 
 }  // namespace
