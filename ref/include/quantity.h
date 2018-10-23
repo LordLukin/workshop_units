@@ -45,6 +45,24 @@ namespace units {
   struct is_quantity<quantity<Rep>> : std::true_type {
   };
 
+  // treat_as_floating_point
+
+  template<class Rep>
+  struct treat_as_floating_point : std::is_floating_point<Rep> {
+  };
+
+  template<class Rep>
+  inline constexpr bool treat_as_floating_point_v = treat_as_floating_point<Rep>::value;
+
+  // quantity_values
+
+  template<typename Rep>
+  struct quantity_values {
+    static constexpr Rep zero() { return Rep(0); }
+    static constexpr Rep max() { return std::numeric_limits<Rep>::max(); }
+    static constexpr Rep min() { return std::numeric_limits<Rep>::lowest(); }
+  };
+
   // quantity
 
   template<typename Rep>
@@ -59,13 +77,13 @@ namespace units {
     quantity(const quantity&) = default;
 
     template<class Rep2, Requires<std::is_convertible_v<Rep2, rep> &&
-                                  (std::is_floating_point_v<rep> || !std::is_floating_point_v<Rep2>)> = true>
+                                  (treat_as_floating_point_v<rep> || !treat_as_floating_point_v<Rep2>)> = true>
     constexpr explicit quantity(const Rep2& r) : value_{static_cast<rep>(r)}
     {
     }
 
     template<class Rep2, Requires<std::is_convertible_v<Rep2, rep> &&
-                                  (std::is_floating_point_v<rep> || !std::is_floating_point_v<Rep2>)> = true>
+                                  (treat_as_floating_point_v<rep> || !treat_as_floating_point_v<Rep2>)> = true>
     constexpr quantity(const quantity<Rep2>& q) : value_{static_cast<rep>(q.count())}
     {
     }
@@ -74,9 +92,9 @@ namespace units {
 
     constexpr rep count() const noexcept { return value_; }
 
-    static constexpr quantity zero() { return quantity(Rep(0)); }
-    static constexpr quantity min() { return quantity(std::numeric_limits<Rep>::lowest()); }
-    static constexpr quantity max() { return quantity(std::numeric_limits<Rep>::max()); }
+    static constexpr quantity zero() { return quantity(quantity_values<Rep>::zero()); }
+    static constexpr quantity min() { return quantity(quantity_values<Rep>::min()); }
+    static constexpr quantity max() { return quantity(quantity_values<Rep>::max()); }
 
     constexpr quantity operator+() const { return quantity(*this); }
     constexpr quantity operator-() const { return quantity(-count()); }

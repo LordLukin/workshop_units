@@ -61,17 +61,22 @@ namespace {
 
   using namespace units;
 
-  template<typename Rep>
-  using meters = quantity<Rep>;
+  template<typename Rep> using meters = quantity<Rep>;
+  template<typename Rep> using kilometers = quantity<Rep, std::kilo>;
+  template<typename Rep> using millimeters = quantity<Rep, std::milli>;
 
   // class invariants
 
 //  constexpr quantity<meters<int>> error(meters<int>(0));  // should trigger a static_assert
+//  constexpr quantity<int, float> error(0);  // should trigger a static_assert
+//  constexpr quantity<int, std::ratio<-1, 1>> error(0);  // should trigger a static_assert
 
   // member types
 
   static_assert(std::is_same_v<meters<int>::rep, int>);
   static_assert(std::is_same_v<meters<float>::rep, float>);
+  static_assert(std::is_same_v<meters<int>::ratio, std::ratio<1, 1>>);
+  static_assert(std::is_same_v<kilometers<int>::ratio, std::ratio<1000, 1>>);
 
   // constructors
 

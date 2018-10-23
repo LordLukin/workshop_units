@@ -39,52 +39,24 @@ static_assert(2_km / 2_kmph == 1_h);
 
 
 ## Task
- 
+
 ```cpp
-template<typename T>
-class my_value;
+template<typename Rep> using meters = quantity<Rep>;
+template<typename Rep> using kilometers = quantity<Rep, std::kilo>;
+template<typename Rep> using millimeters = quantity<Rep, std::milli>;
 
-namespace units {
-
-  template<typename T>
-  struct treat_as_floating_point<my_value<T>> : std::is_floating_point<T> {};
-
-  template<typename T>
-  struct quantity_values<my_value<T>> {
-    static constexpr my_value<T> zero() { return my_value<T>(0); }
-    static constexpr my_value<T> max() { return std::numeric_limits<T>::max(); }
-    static constexpr my_value<T> min() { return std::numeric_limits<T>::lowest(); }
-  };
-
-}
-
-template<typename Rep>
-using meters = quantity<Rep>;
-
-constexpr meters<my_value<int>> d1(1), d2(2);
-constexpr meters<int> d3 = d1 + d2;
-static_assert(d3.count() == 3);
-
-constexpr meters<float> d4(3.0);
-constexpr meters<my_value<float>> d5 = d4 + d3;
-static_assert(d5.count() == 6.0);
+constexpr meters<int> d1{1};
+constexpr kilometers<int> d2{1};
+// constexpr meters<int> d3 = d1 + d2; // should not compile
+constexpr meters<int> d3(d1.count() + d2.count() * 1000);
 ```
 
-1. Add the following customization points to `quantity`
-    - `units::treat_as_floating_point<T>` that allows the user to specify that his own type provided as
-      `Rep` behaves like a floating point type
-        ```cpp
-        template<class Rep>
-        struct treat_as_floating_point;
-        ```
-    
-    - `units::quantity_values<T>` that allows providing custom `zero`, `min`, and `max` for `Rep`
-    
-        ```cpp
-        template<typename Rep>
-        struct quantity_values {
-          static constexpr Rep zero();
-          static constexpr Rep max();
-          static constexpr Rep min();
-        };
-        ```
+1. Convert `quantity` to the following class template
+    ```cpp
+    template<typename Rep, class Ratio = std::ratio<1>>
+    class quantity;
+    ```
+2. Update the `quantity` class to provide `ratio` member type in its interface.
+3. Make sure that `Ratio` argument of `quantity` class template is a specialization of `std::ratio`.
+4. Make sure that value provided to `Ratio` is positive (non-negative).
+5. All binary functions using `quantity` for both arguments should use the same `Ratio` for both of them.
